@@ -68,7 +68,7 @@ def extract_text(pdf_file) -> str:
 # -------------------------------------------------------
 # STEP 2: SPLIT TEXT INTO CHUNKS
 # -------------------------------------------------------
-def create_chunks(text: str, chunk_size: int = 500, overlap: int = 100) -> list[str]:
+def create_chunks(text: str, chunk_size: int = 1000, overlap: int = 200) -> list[str]:
     """
     Splits large text into smaller overlapping chunks.
 
@@ -93,14 +93,14 @@ def create_chunks(text: str, chunk_size: int = 500, overlap: int = 100) -> list[
 
     Args:
         text       : Input text (usually extracted from PDF)
-        chunk_size : Maximum length of each chunk in characters. Default: 500
-        overlap    : Number of overlapping characters between chunks. Default: 100
+        chunk_size : Maximum length of each chunk in characters. Default: 1000
+        overlap    : Number of overlapping characters between chunks. Default: 200
 
     Returns:
         list[str]: List of text chunks
 
     Example:
-        chunks = create_chunks(text, chunk_size=500, overlap=100)
+        chunks = create_chunks(text, chunk_size=1000, overlap=200)
         print(f"Total chunks: {len(chunks)}")
     """
     if not text:
@@ -120,7 +120,7 @@ def create_chunks(text: str, chunk_size: int = 500, overlap: int = 100) -> list[
 
         # Move the window forward while preserving overlap
         # Example:
-        # chunk_size=500, overlap=100
+        # chunk_size=1000, overlap=200
         # next start = current_start + 400
         start += (chunk_size - overlap)
 

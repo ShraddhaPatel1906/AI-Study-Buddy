@@ -17,18 +17,31 @@ def ask_groq(context: str, question: str, api_key: str) -> str:
         "messages": [
             {
                 "role": "user",
-                "content": f"""Answer the question based only on the context below.
-If the answer is not in the context, say "This information is not in the document."
+                "content": f"""
+You are an expert study assistant.
+
+Use ONLY the provided context.
+
+Rules:
+1. Answer only from the context.
+2. If partial information exists, provide it.
+3. Explain in detail.
+4. Use headings and bullet points when useful.
+5. Only say:
+   'This information is not in the document.'
+   when no relevant information exists.
  
-Context:
+CONTEXT:
 {context}
- 
-Question: {question}
- 
-Answer:"""
+
+QUESTION:
+{question}
+
+ANSWER:
+"""
             }
         ],
-        "max_tokens": 300,
+        "max_tokens": 800,
         "temperature": 0.3
     }
  
@@ -124,18 +137,18 @@ with st.sidebar:
  
     chunk_size = st.slider(
         "Chunk Size (characters)",
-        200,
-        1000,
         500,
-        50,
+        2000,
+        1200,
+        100,
         help="Smaller = More precise, Larger = More context"
     )
  
     overlap = st.slider(
         "Chunk Overlap (characters)",
-        0,
-        300,
-        100,
+        50,
+        500,
+        250,
         25,
         help="Overlap between consecutive chunks"
     )
@@ -143,8 +156,8 @@ with st.sidebar:
     top_k = st.slider(
         "Top K Results",
         1,
-        10,
-        3,
+        15,
+        8,
         1,
         help="Number of relevant chunks to retrieve"
     )
@@ -254,6 +267,17 @@ if uploaded_file is not None:
                     f"✅ {uploaded_file.name} loaded successfully "
                     f"({len(chunks)} chunks | {len(raw_text):,} characters)"
                 )
+                avg_chunk = sum(len(c) for c in chunks) // len(chunks)
+
+                st.info(
+                    f"""
+                📄 Characters: {len(raw_text):,}
+
+                ✂️ Chunks: {len(chunks)}
+
+                📏 Avg Chunk Size: {avg_chunk}
+                """
+                )
  
             except Exception as e:
                 st.error(f"❌ Error: {e}")
@@ -304,23 +328,73 @@ if st.session_state.chunks is not None:
             index=st.session_state.index,
             top_k=top_k
         )
+
+        results = sorted(
+            results,
+            key=lambda x: x["score"],
+            reverse=True
+        )
+
+        # Retrieval confidence check
+        if results and results[0]["score"] < 0.35:
+            st.warning(
+                "⚠️ Retrieval confidence is low. Answer may be incomplete."
+            )
  
         if show_chunks and results:
-            with st.expander("🔍 Retrieved Context Chunks", expanded=False):
+
+            with st.expander(
+                "🔍 Retrieved Context Chunks",
+                expanded=False
+            ):
+
                 for i, r in enumerate(results, 1):
+
                     st.markdown(
                         f'<div class="chunk-box">'
-                        f'<span class="score-badge">#{i} Score: {r["score"]:.3f}</span><br><br>'
-                        f'{r["text"]}</div>',
+                        f'<span class="score-badge">'
+                        f'#{i} | Score: {r["score"]:.3f}'
+                        f'</span><br><br>'
+                        f'{r["text"]}'
+                        f'</div>',
                         unsafe_allow_html=True
                     )
- 
-        context = "\n\n".join([r["text"] for r in results])
+        
+        context = "\n\n".join(
+            [
+                f"[Score: {r['score']:.3f}]\n{r['text']}"
+                for r in results
+            ]
+        )
  
         with st.chat_message("assistant"):
             with st.spinner("🤔 Generating Answer..."):
-                answer = ask_groq(context, user_question, groq_api_key)
+
+                # Last 4 messages ka context
+                recent_history = ""
+
+                for msg in st.session_state.chat_history[-4:]:
+                    recent_history += (
+                        f"{msg['role']}: {msg['content']}\n"
+                    )
+
+                enhanced_question = f"""
+        Previous conversation:
+        {recent_history}
+
+        Current question:
+        {user_question}
+        """
+
+                answer = ask_groq(
+                    context,
+                    enhanced_question,
+                    groq_api_key
+                )
+
             st.markdown(answer)
+
+            
  
         st.session_state.chat_history.append(
             {"role": "assistant", "content": answer}
