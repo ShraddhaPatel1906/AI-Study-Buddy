@@ -211,16 +211,15 @@ The model generates an answer using only the retrieved context.
 
 ### Home Page
 
-Add screenshot here
+![Home Page](Home.png)
 
 ### PDF Upload
 
-Add screenshot here
+![PDF Upload](Upload-pdf.png)
 
 ### Question Answering
 
-Add screenshot here
-
+![Question Answering](Question-Ans.png)
 ---
 
 ## 🎯 Example Questions
